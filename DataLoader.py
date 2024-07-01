@@ -16,8 +16,8 @@ def load_data(file_path):
             # Replace the date and time strings in the row with the formatted date string
             new_row = row[:1] + [formatted_date] + row[4:]  # Adjust the row to include the formatted date string
             data.append(new_row)  # Append the modified row to the data list
-
+    for row in data:
+        print(row)
     return data
 
 data = load_data('PlayerData/MOD_Invulblad prono Bol EK2024.csv')
-print(data)

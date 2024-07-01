@@ -8,9 +8,6 @@ key = os.environ.get("SUPABASE_KEY")
 
 supabase: Client = create_client(url, key)
 
-response, count = supabase.table("matches").select("*").execute()
-print(response)
-
 def get_score(T1_ps, T2_ps, T1_as, T2_as):
     score = 0
     if T1_ps == T1_as:
@@ -23,16 +20,26 @@ def get_score(T1_ps, T2_ps, T1_as, T2_as):
         score += 2
     if (T1_ps - T2_ps)==0 and (T1_as - T2_as)==0:
         score += 2
+    score *= 1.5
     return score
 
-def update_score(matchid,playerid,T1_score,T2_score):
-    response2, count = supabase.table("pronomatches").select("*").eq("match", matchid).eq("player", playerid).execute()
-    playerProno = response2[1][0]
-    score = get_score(playerProno["T1_score"],playerProno["T2_score"],T1_score,T2_score)
-    supabase.table("pronomatches").update({"score": score}).eq("match", matchid).eq("player", playerid).execute()
-    print("Score updated for match",matchid,"player",playerid,"score",score)
 
-    
+def update_score():
+    matches, count = supabase.table("matches").select("*").not_.is_('T1s',None).execute()
+    for match in matches[1]:
+        pronomatches, count = supabase.table("pronomatches").select("*").eq("match", match["id"]).execute()
+        for pronomatch in pronomatches[1]:
+            score = get_score(pronomatch["T1_score"], pronomatch["T2_score"],match["T1s"], match["T2s"])
+            supabase.table("pronomatches").update({"score": score}).eq("id", pronomatch["id"]).execute()
 
-update_score(1,1,2,0)
-update_score(2,1,1,1)
+def calculate_score():
+    Players, count = supabase.table("Players").select("*").execute()
+    for player in Players[1]:
+        pronomatches, count = supabase.table("pronomatches").select("*").eq("player", player["id"]).not_.is_('score',None).execute()
+        score = 0.0
+        for pronomatch in pronomatches[1]:
+            score += pronomatch["score"]
+        supabase.table("Players").update({"total_score": score}).eq("id", player["id"]).execute()
+
+update_score()
+calculate_score()
